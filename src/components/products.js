@@ -1,14 +1,16 @@
 import React,{ useEffect, useState} from 'react';
-import ReactDOM from 'react-dom';
 import 'semantic-ui-css/semantic.min.css'
 import axios from 'axios';
 import { Table ,TableCell,Modal,Button} from 'semantic-ui-react';
+import {useHistory} from 'react-router-dom'
+import { API,Auth } from 'aws-amplify';
 
 const Products = ()=>{
 
-    const [allProducts,SetAllProducts]=useState([])
+    const history = useHistory()
+
+    const[allProducts,SetAllProducts]=useState([])
     const[openModal,setOpenModal]=useState(false)
-    const[editMode,setEditMode]=useState(false)
     const[cmimi,setCmimi]=useState("")
     const[name,setName]=useState("")
     const[category,setCategory]=useState("")
@@ -22,14 +24,33 @@ const clear = ()=>{
     setOpenModal(false)
     setEditId("")
 }
+useEffect(()=>{
+    fetchAllProducts()
+    fetchCategories()
+},[])
+
+async function signOut() {
+    try {
+        await Auth.signOut();
+    } catch (error) {
+        console.log('error signing out: ', error);
+    }
+}
 
 const postProducts=async()=>{
+    const user = await Auth.currentAuthenticatedUser()
+    const token = user.signInUserSession.idToken.jwtToken
+    const requestInfo = {
+        headers: {
+            Authorization: token
+        }
+      }
         try {
-           await axios.post(`https://egw1r79dz5.execute-api.eu-central-1.amazonaws.com/dev/new-produkt`,  {
+           await axios.post(`https://egw1r79dz5.execute-api.eu-central-1.amazonaws.com/dev/newProduct`,  {
                 name:name,
                 cmimi:cmimi,
                 categoryId:category
-            })
+            },requestInfo)
             clear()
             setOpenModal(false)
             fetchAllProducts()
@@ -38,8 +59,15 @@ const postProducts=async()=>{
         }
     }
     const fetchCategories=async()=>{
+        const user = await Auth.currentAuthenticatedUser()
+        const token = user.signInUserSession.idToken.jwtToken
+        const requestInfo = {
+            headers: {
+                Authorization: token
+            }
+          }
         try {
-           const category = await axios.get(`https://egw1r79dz5.execute-api.eu-central-1.amazonaws.com/dev/allCategories`)
+           const category = await axios.get(`https://egw1r79dz5.execute-api.eu-central-1.amazonaws.com/dev/categories`,requestInfo)
             setAllCategories(category.data) 
         } catch (err) {
             console.log(err)
@@ -48,25 +76,35 @@ const postProducts=async()=>{
 
 
 const fetchAllProducts=async()=>{
+    const user = await Auth.currentAuthenticatedUser()
+    const token = user.signInUserSession.idToken.jwtToken
+    const requestInfo = {
+        headers: {
+            Authorization: token
+        }
+      }
     try {
-       const res = await axios.get(`https://egw1r79dz5.execute-api.eu-central-1.amazonaws.com/dev/all-produkt`)
+       const res = await axios.get(`https://egw1r79dz5.execute-api.eu-central-1.amazonaws.com/dev/products`,requestInfo)
         SetAllProducts(res.data) 
     } catch (err) {
         console.log(err)
     }
 }
-useEffect(()=>{
-    fetchAllProducts()
-    fetchCategories()
-},[])
 
 const editProduct=async()=>{
+    const user = await Auth.currentAuthenticatedUser()
+    const token = user.signInUserSession.idToken.jwtToken
+    const requestInfo = {
+        headers: {
+            Authorization: token
+        }
+      }
     try {
-        await axios.put(`https://egw1r79dz5.execute-api.eu-central-1.amazonaws.com/dev/update-produkt/${editId}`,{
+        await axios.put(`https://egw1r79dz5.execute-api.eu-central-1.amazonaws.com/dev/products/put/${editId}`,{
             name:name,
             cmimi:cmimi,
             categoryId:category
-        })
+        },requestInfo)
         clear()
         fetchAllProducts();
     } catch (err) {
@@ -75,18 +113,25 @@ const editProduct=async()=>{
 }
 
 const deleteProduct=async(id)=>{
+    const user = await Auth.currentAuthenticatedUser()
+    const token = user.signInUserSession.idToken.jwtToken
+    const requestInfo = {
+        headers: {
+            Authorization: token
+        }
+      }
     try {
-        await axios.delete(`https://egw1r79dz5.execute-api.eu-central-1.amazonaws.com/dev/delete-produkt/${id}`)
+        await axios.delete(`https://egw1r79dz5.execute-api.eu-central-1.amazonaws.com/dev/product/delete/${id}`,requestInfo)
         fetchAllProducts();
     } catch (err) {
-        
+        console.log(err)
     }
 }
-
 return (
     <div>
-        <Button onClick={()=>setOpenModal(true)}>Add Product</Button>
-        <a href='http://localhost:3000/categories'><Button>Add Category</Button></a>
+        <Button onClick={()=>setOpenModal(true)} style={{margin:"10px"}}>Add Product</Button>
+            <Button onClick={()=>history.push("/categories")} style={{margin:"10px"}}>Add Category</Button>
+            <Button onClick={signOut} style={{float:"right",margin:"10px"}}>Sign Out</Button>
         <Table celled>
             <Table.Header>
                 <Table.Row>

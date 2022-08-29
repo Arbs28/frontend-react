@@ -3,6 +3,16 @@ import ReactDOM from 'react-dom';
 import 'semantic-ui-css/semantic.min.css'
 import axios from 'axios';
 import { Table ,TableCell,Modal,Button} from 'semantic-ui-react';
+import { Auth } from 'aws-amplify';
+
+async function signOut() {
+    try {
+        await Auth.signOut();
+    } catch (error) {
+        console.log('error signing out: ', error);
+    }
+}
+
 
 const Category = ()=>{
 
@@ -18,10 +28,17 @@ const clear = ()=>{
 }
 
 const postCategories=async()=>{
+    const user = await Auth.currentAuthenticatedUser()
+    const token = user.signInUserSession.idToken.jwtToken
+    const requestInfo = {
+        headers: {
+            Authorization: token
+        }
+      }
         try {
            await axios.post(`https://egw1r79dz5.execute-api.eu-central-1.amazonaws.com/dev/newCategory`,  {
                 categoryName:name,
-            })
+            },requestInfo)
             clear()
             setOpenModal(false)
             fetchCategories()
@@ -30,8 +47,15 @@ const postCategories=async()=>{
         }
     }
     const fetchCategories=async()=>{
+        const user = await Auth.currentAuthenticatedUser()
+        const token = user.signInUserSession.idToken.jwtToken
+        const requestInfo = {
+            headers: {
+                Authorization: token
+            }
+          }
         try {
-           const category = await axios.get(`https://egw1r79dz5.execute-api.eu-central-1.amazonaws.com/dev/allCategories`)
+           const category = await axios.get(`https://egw1r79dz5.execute-api.eu-central-1.amazonaws.com/dev/categories`,requestInfo)
             setAllCategories(category.data) 
         } catch (err) {
             console.log(err)
@@ -45,10 +69,17 @@ useEffect(()=>{
 
 
 const editCategory=async()=>{
+    const user = await Auth.currentAuthenticatedUser()
+    const token = user.signInUserSession.idToken.jwtToken
+    const requestInfo = {
+        headers: {
+            Authorization: token
+        }
+      }
     try {
-        await axios.put(`https://egw1r79dz5.execute-api.eu-central-1.amazonaws.com/dev/update-category/${editId}`,  {
+        await axios.put(`https://egw1r79dz5.execute-api.eu-central-1.amazonaws.com/dev/category/put/${editId}`,  {
             categoryName:name,
-        }) 
+        },requestInfo) 
         clear();
         fetchCategories()
     } catch (err) {
@@ -57,8 +88,15 @@ const editCategory=async()=>{
 }
 
 const deleteCategory=async(id)=>{
+    const user = await Auth.currentAuthenticatedUser()
+    const token = user.signInUserSession.idToken.jwtToken
+    const requestInfo = {
+        headers: {
+            Authorization: token
+        }
+      }
     try {
-        await axios.delete(`https://egw1r79dz5.execute-api.eu-central-1.amazonaws.com/dev/deleteCategory/${id}`)
+        await axios.delete(`https://egw1r79dz5.execute-api.eu-central-1.amazonaws.com/dev/category/delete/${id}`,requestInfo)
         fetchCategories();
     } catch (err) {
         
@@ -67,7 +105,8 @@ const deleteCategory=async(id)=>{
 
 return (
     <div>
-        <Button onClick={()=>setOpenModal(true)}>Add Category</Button>
+        <Button onClick={()=>setOpenModal(true)} style={{margin:"10px"}}>Add Category</Button>
+        <Button onClick={signOut} style={{float:"right" ,margin:"10px"}}>Sign Out</Button>
         <Table celled>
             <Table.Header>
                 <Table.Row>
